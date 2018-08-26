@@ -1,0 +1,109 @@
+#coding:utf-8
+
+from __future__ import print_function
+import sys
+import pywebm import WEBMConnetion,Error,CIMError
+import json
+
+
+#需要传回四个参数，服务器url,命名空间，用户名，密码
+#如果为空返回
+
+
+dicts={}
+
+def getSttrValue(dict,inst,name):
+  #print(type(inst.properties))
+  if (name in inst.properties.keys()):
+    data=inst.properties[name].value
+    if ""!=data:
+      return data
+    else:
+      return ""
+  else:
+    return ""
+    
+#将对象放到字典中，因为涉及到多个类会有同样的属性名，所以这里key是类名+属性名
+def putIntoDic(dict,inst,name):
+  key=name
+  dict[key]=getstrValue(dict,inst,name)
+  
+  
+def execute_request(server_url,creds,namespace):
+  try:
+    CONN=WBEMConnection(server_url,creds,default_namespace=namespace,no_verification=True)
+    
+    #classname调整为拼接方式
+    nameStart=namespace.split("/")[1]
+    classname=nameStart+"_StorageSystem"
+    # 为了保证后台解析不出问题，数据采集完返回的依然是之前协定的名字
+    dicName="Macro_StorageSystem"
+    INSTANCES=CONN.EnumerateInstances(classname)
+    
+    list=[]
+    for inst in INSTANCES:
+      dict={}
+      putIntoDic(dict,inst,"Name")
+			putIntoDic(dict,inst,"ElementName")
+			putIntoDic(dict,inst,"Description")
+			putIntoDic(dict,inst,"OtherIdentifyingInfo")
+			putIntoDic(dict,inst,"InstanceID")
+			putIntoDic(dict,inst,"HealthState")
+			putIntoDic(dict,inst,"OperationalStatus")
+			putIntoDic(dict,inst,"NameFormat")
+			putIntoDic(dict,inst,"Dedicated")
+			list.append(dict)
+      
+    dicts[dicName]=list
+    
+    classname="CIM_PhysicalPackage"
+    INSTANCES=CONN.EnumerateInstances(classname)
+    list=[]
+    for inst in INSTANCES:
+      dict={}
+      putIntoDic(dict,inst,"ElementName")
+			putIntoDic(dict,inst,"Manufacturer")
+			putIntoDic(dict,inst,"Name")
+			putIntoDic(dict,inst,"Model")
+			putIntoDic(dict,inst,"SerialNumber")
+			putIntoDic(dict,inst,"Version")
+			list.append(dict)
+    dicts[classname]=list
+    
+    
+    classname = "CIM_Product"
+		INSTANCES = CONN.EnumerateInstances(classname)
+		list =[]
+		for inst in INSTANCES:
+			dict={}
+			putIntoDic(dict,inst,"IdentifyingNumber")
+			putIntoDic(dict,inst,"Vendor")
+			putIntoDic(dict,inst,"Version")
+			list.append(dict)
+		dicts[classname] = list
+    
+    print("OK Success"+json.dumps(dicts))
+  except Error as err:
+    if isinstance(err,CIMError):
+      print("Opration Failed:CIMError: code=%s, Description=%s"%(err.status_code_name, err.status_description))
+    else:
+      print("Operation failed:%s"%err)
+    sys.exit(1)
+    
+def main():
+    server_url=sys.argv[1]
+    namespace=sys.argv[2]
+    username=sys.argv[3]
+    password=sys.argv[4]
+    
+    creds=(username,password)
+    excute_resquest(server_url,creds,namespace)
+    return 0
+    
+    if __name__=="__main__":
+      sys.exit(main())
+      
+      
+      
+      
+      
